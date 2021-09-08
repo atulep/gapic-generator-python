@@ -62,6 +62,10 @@ requires_google_auth_gte_1_25_0 = pytest.mark.skipif(
     packaging.version.parse(_GOOGLE_AUTH_VERSION) < packaging.version.parse("1.25.0"),
     reason="This test requires google-auth >= 1.25.0",
 )
+requires_google_auth_gte_2_0_3 = pytest.mark.skipif(
+    packaging.version.parse(_GOOGLE_AUTH_VERSION) < packaging.version.parse("2.0.3"),
+    reason="This test requires google-auth >= 2.0.3",
+)
 
 def client_cert_source_callback():
     return b"cert bytes", b"key bytes"
@@ -4048,3 +4052,56 @@ def test_client_withDEFAULT_CLIENT_INFO():
             client_info=client_info,
         )
         prep.assert_called_once_with(client_info)
+
+
+@requires_google_auth_gte_2_0_3
+@pytest.mark.parametrize("client_class,transport_class", [
+    (AssetServiceClient, transports.AssetServiceGrpcTransport),
+    (AssetServiceAsyncClient, transports.AssetServiceGrpcAsyncIOTransport),
+])
+def test_api_key_credentials(client_class, transport_class):
+    with mock.patch.object(
+        google.auth.api_key, "get_api_key_credentials", create=True
+    ) as get_api_key:
+        mock_cred = mock.Mock()
+        get_api_key.return_value = mock_cred
+        options = {"credentials_file": "/path/to/credential/file"}
+        with mock.patch.object(transport_class, "__init__") as patched:
+            patched.return_value = None
+            client = client_class(client_options=options)
+            patched.assert_called_once_with(
+                credentials=mock_cred,
+                credentials_file=None,
+                host=client.DEFAULT_ENDPOINT,
+                scopes=None,
+                client_cert_source_for_mtls=None,
+                quota_project_id=None,
+                client_info=transports.base.DEFAULT_CLIENT_INFO,
+                always_use_jwt_access=True,
+            )
+
+
+@requires_google_auth_gte_2_0_3
+@pytest.mark.parametrize("client_class,transport_class", [
+    (AssetServiceClient, transports.AssetServiceGrpcTransport),
+    (AssetServiceAsyncClient, transports.AssetServiceGrpcAsyncIOTransport),
+])
+def test_api_key_credentials_without_api_key(client_class, transport_class):
+    with mock.patch.object(
+        google.auth.api_key, "get_api_key_credentials", create=True
+    ) as get_api_key:
+        get_api_key.return_value = None
+        options = {"credentials_file": "/path/to/credential/file"}
+        with mock.patch.object(transport_class, "__init__") as patched:
+            patched.return_value = None
+            client = client_class(client_options=options)
+            patched.assert_called_once_with(
+                credentials=None,
+                credentials_file="/path/to/credential/file",
+                host=client.DEFAULT_ENDPOINT,
+                scopes=None,
+                client_cert_source_for_mtls=None,
+                quota_project_id=None,
+                client_info=transports.base.DEFAULT_CLIENT_INFO,
+                always_use_jwt_access=True,
+            )
